@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anni.bot.web</title>
+    <link href="
+
+" rel="stylesheet">
+    <script src="
+
+"></script>
+    <style>
+        /* Estilos CSS (sin cambios desde la versión anterior) */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chatbot-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            z-index: 1000;
+        }
+        .chatbot-button {
+            background-color: #a7f3d0;
+            color: #065f46;
+            border: none;
+            padding: 16px;
+            border-radius: 9999px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-bottom: 10px;
+        }
+        .chatbot-button:hover {
+            background-color: #34d399;
+            transform: scale(1.1);
+        }
+        .chatbot-button-icon {
+             width: 30px;
+             height: 30px;
+        }
+        .chatbot-dialog {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 300px;
+            width: 100%;
+            display: none;
+            flex-direction: column;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+        }
+        .chatbot-dialog.active {
+            display: flex;
+        }
+        .chat-header {
+            background-color: #f0f4f8;
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #4a5568;
+        }
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: #718096;
+            cursor: pointer;
+            padding: 0;
+            transition: color 0.2s ease;
+        }
+        .close-button:hover {
+            color: #1a202c;
+        }
+        .chat-messages {
+            padding: 12px;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .message {
+            margin-bottom: 8px;
+            display: flex;
+            flex-direction: column;
+        }
+        .message-text {
+            padding: 10px;
+            border-radius: 12px;
+            max-width: 85%;
+            white-space: pre-wrap;
+        }
+        .user-message .message-text {
+            background-color: #d4f1f4;
+            color: #1a5255;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .bot-message .message-text {
+            background-color: #ede9fe;
+            color: #5b21b6;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .message-sender {
+            font-size: 0.75rem;
+            color: #a0aec0;
+            margin-top: 2px;
+        }
+         .user-message .message-sender {
+             text-align: right;
+         }
+        .chat-input {
+            padding: 12px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+        }
+        .chat-input input {
+            flex-grow: 1;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px;
+            margin-right: 8px;
+            font-size: 1rem;
+            color: #4a5568;
+        }
+        .chat-input input:focus {
+            outline: none;
+            border-color: #a7f3d0;
+            box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.25);
+        }
+        .chat-input button {
+            background-color: #a7f3d0;
+            color: #065f46;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            font-size: 1rem;
+        }
+        .chat-input button:hover {
+            background-color: #34d399;
+            transform: scale(1.05);
+        }
+        .chat-input button:disabled {
+            background-color: #cbd5e0;
+            color: #718096;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .suggestions-box {
+            position: absolute;
+            bottom: calc(100% + 40px);
+            right: 0;
+            background-color: white;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 8px;
+            display: none;
+            flex-direction: column;
+            z-index: 1001;
+            max-width: 280px;
+            border: 1px solid #e2e8f0;
+        }
+        .suggestions-box.active {
+            display: flex;
+        }
+        .suggestion-item {
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            font-size: 0.9rem;
+            color: #4a5568;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .suggestion-item:hover {
+            background-color: #f7fafc;
+            color: #1a202c;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-purple-100 to-pink-100 min-h-screen flex flex-col">
+    <header class="bg-white/80 backdrop-blur-md py-4 shadow-md rounded-b-lg">
+        <div class="container mx-auto px-4">
+            <h1 class="text-2xl font-semibold text-gray-800 text-center">Anni.bot.web</h1>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-8 flex-grow flex justify-center items-center">
+        <div class="bg-white/80 backdrop-blur-md rounded-lg shadow-xl p-8 max-w-2xl w-full text-center">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Bienvenido a Anni.bot.web</h2>
+            <p class="text-gray-600 mb-6">Tu asistente virtual para resolver dudas académicas de 2do año de secundaria. ¡Pregúntame cualquier cosa!</p>
+             <div class="mb-6 rounded-md p-4 bg-indigo-50 border border-indigo-100">
+                <p class="text-indigo-600 text-sm">
+                    <strong>Autores:</strong> Andrea Amador, Esther John<br>
+                    <strong>Ubicación:</strong> Ciudad Guayana, 2025
+                </p>
+            </div>
+            <p class="text-gray-500 text-sm">Haz clic en el botón del chat en la esquina inferior derecha para comenzar.</p>
+" alt="Chatbot Icon" class="chatbot-button-icon" />
+        </button>
+        <div id="chatbot-dialog" class="chatbot-dialog fade-in">
+            <div class="chat-header">
+                <h3>Anni.bot</h3>
+                <button id="close-button" class="close-button" aria-label="Cerrar chat">
+                    <svg xmlns="
+        </div>
+" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="M6 6 18 18"/></svg>
+                </button>
+            </div>
+            <div id="chat-messages" class="chat-messages">
+                <div class="message bot-message">
+                    <span class="message-text">Hola, soy Anni.bot. ¡Estoy aquí para ayudarte con tus preguntas de 2do año de secundaria! Dime, ¿qué necesitas saber?</span>
+                    <span class="message-sender">Anni.bot</span>
+                </div>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="message-input" placeholder="Escribe tu pregunta..." />
+                <button id="send-button" disabled>Enviar</button>
+            </div>
+            <div id="suggestions-box" class="suggestions-box">
+            </div>
+        </div>
+    </div>
+    <script>
+        const chatbotButton = document.getElementById('chatbot-button');
+        const chatbotDialog = document.getElementById('chatbot-dialog');
+        const closeButton = document.getElementById('close-button');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const chatMessages = document.getElementById('chat-messages');
+        const suggestionsBox = document.getElementById('suggestions-box');
+
+        const suggestions = [
+            "¿Qué es la célula?",
+            "¿Cuáles son las partes de la célula?",
+            "¿Qué es el átomo?",
+            "¿Cuáles son las partes del átomo?",
+            "¿Qué es una molécula?",
+            "¿Cuáles son los estados de la materia?",
+            "¿Qué es la fotosíntesis?",
+            "¿Qué es la respiración celular?",
+            "¿Qué es el sistema solar?",
+            "¿Cuáles son los planetas del sistema solar?",
+            "¿Qué es la gravedad?",
+            "¿Qué es la fuerza?",
+            "¿Qué es la energía?",
+            "¿Cuáles son las fuentes de energía?",
+             "¿Qué es la historia?",
+            "¿Cuáles son las edades de la historia?",
+            "¿Qué es la geografía?",
+            "¿Cuáles son los continentes?",
+            "¿Cuáles son los océanos?",
+            "¿Qué es la democracia?",
+            "¿Qué es la dictadura?",
+            "¿Qué son los derechos humanos?",
+            "¿Qué es la economía?",
+            "¿Qué es el producto interno bruto?",
+            "¿Qué es la inflación?",
+            "¿Qué es la deflación?",
+            "¿Qué es la globalización?",
+            "¿Qué es la cultura?",
+            "¿Cuáles son las manifestaciones culturales?",
+            "¿Qué es el arte?",
+            "¿Cuáles son las bellas artes?",
+            "¿Qué es la música?",
+            "¿Cuáles son los géneros musicales?",
+            "¿Qué es el teatro?",
+            "¿Qué es la danza?",
+            "¿Qué es el cine?",
+            "¿Qué es la literatura?",
+            "¿Cuáles son los géneros literarios?",
+            "¿Qué es la poesía?",
+            "¿Qué es la novela?",
+            "¿Qué es el cuento?",
+            "¿Qué es el ensayo?",
+            "¿Qué es el drama?",
+            "¿Qué es la comedia?",
+            "¿Qué es la tragedia?",
+            "¿Qué es la filosofía?",
+            "¿Cuáles son las ramas de la filosofía?",
+            "¿Qué es la ética?",
+            "¿Qué es la moral?",
+            "¿Qué es la lógica?",
+            "¿Qué es el conocimiento?",
+            "¿Qué es la verdad?",
+            "¿Qué es la ciencia?",
+            "¿Cuáles son los pasos del método científico?",
+            "¿Qué es la tecnología?",
+            "¿Cuáles son los tipos de tecnología?",
+            "¿Qué es la informática?",
+            "¿Qué es internet?",
+            "¿Qué es la programación?",
+            "¿Cuáles son los lenguajes de programación?",
+            "¿Qué es la salud?",
+            "¿Qué es la enfermedad?",
+            "¿Qué es la nutrición?",
+            "¿Qué es el ejercicio?",
+            "¿Qué es el deporte?",
+            "¿Cuáles son los deportes olímpicos?",
+            "¿Qué es la educación?",
+            "¿Cuáles son los niveles educativos?",
+            "¿Qué es la pedagogía?",
+            "¿Qué es la didáctica?",
+            "¿Qué es la evaluación educativa?",
+            "¿Qué es la investigación?",
+            "¿Cuáles son los tipos de investigación?",
+            "¿Qué es un proyecto de investigación?",
+            "¿Qué es la estadística?",
+            "¿Cuáles son las medidas de tendencia central?",
+            "¿Qué es la probabilidad?",
+            "¿Qué es la geometría?",
+            "¿Cuáles son las figuras geométricas?",
+            "¿Qué es el álgebra?",
+            "¿Qué es el cálculo?",
+            "¿Qué es la trigonometría?",
+            "¿Qué es la física?",
+            "¿Cuáles son las ramas de la física?",
+            "¿Qué es el movimiento?",
+            "¿Qué es la velocidad?",
+            "¿Qué es la aceleración?",
+            "¿Qué es la masa?",
+            "¿Qué es el peso?",
+            "¿Qué es la inercia?",
+            "¿Qué es la fuerza?",
+            "¿Qué es la energía?",
+            "¿Cuáles son las fuentes de energía?",
+            "¿Qué es el calor?",
+            "¿Qué es la temperatura?",
+            "¿Qué es la electricidad?",
+            "¿Qué es el magnetismo?",
+            "¿Qué es la luz?",
+            "¿Qué es el sonido?",
+            "¿Qué es la química?",
+            "¿Cuáles son las ramas de la química?",
+            "¿Qué es un elemento químico?",
+            "¿Qué es un compuesto químico?",
+            "¿Qué es una reacción química?",
+            "¿Qué es la tabla periódica?",
+            "¿Qué es la biología?",
+            "¿Cuáles son las ramas de la biología?",
+            "¿Qué es la genética?",
+            "¿Qué es la evolución?",
+            "¿Qué es la ecología?",
+            "¿Qué es el medio ambiente?",
+            "¿Qué es el desarrollo sostenible?",
+            "¿Qué es la astronomía?",
+            "¿Cuáles son los cuerpos celestes?",
+            "¿Qué es la geología?",
+            "¿Cuáles son las capas de la tierra?",
+            "¿Qué es un volcán?",
+            "¿Qué es un terremoto?",
+            "¿Qué es un tsunami?",
+            "¿Qué es el clima?",
+            "¿Cuáles son los tipos de clima?",
+            "¿Qué es el calentamiento global?",
+            "¿Qué es el efecto invernadero?",
+            "¿Qué es la capa de ozono?",
+            "¿Qué es la contaminación?",
+            "¿Cuáles son los tipos de contaminación?",
+            "¿Qué es la biodiversidad?",
+            "¿Qué es la extinción?",
+            "¿Qué es la conservación?",
+            "¿Qué es la agricultura?",
+            "¿Qué es la ganadería?",
+            "¿Qué es la pesca?",
+            "¿Qué es la minería?",
+            "¿Qué es la industria?",
+            "¿Qué es el comercio?",
+            "¿Qué es el transporte?",
+            "¿Qué es el turismo?",
+            "¿Qué es la comunicación?",
+            "¿Cuáles son los medios de comunicación?",
+            "¿Qué es la publicidad?",
+            "¿Qué es el marketing?",
+            "¿Qué es la globalización?",
+            "¿Qué es la cultura?",
+            "¿Cuáles son las manifestaciones culturales?",
+            "¿Qué es el arte?",
+            "¿Cuáles son las bellas artes?",
+            "¿Qué es la música?",
+            "¿Cuáles son los géneros musicales?",
+            "¿Qué es el teatro?",
+            "¿Qué es la danza?",
+            "¿Qué es el cine?",
+            "¿Qué es la literatura?",
+            "Cuáles son los géneros literarios?",
+            "¿Qué es la poesía?",
+            "¿Qué es la novela?",
+            "¿Qué es el cuento?",
+            "¿Qué es el ensayo?",
+            "¿Qué es el drama?",
+            "¿Qué es la comedia?",
+            "¿Qué es la tragedia?",
+            "¿Qué es la filosofía?",
+            "¿Cuáles son las ramas de la filosofía?",
+            "¿Qué es la ética?",
+            "¿Qué es la moral?",
+            "¿Qué es la lógica?",
+            "¿Qué es el conocimiento?",
+            "¿Qué es la verdad?",
+            "¿Qué es la ciencia?",
+            "¿Cuáles son los pasos del método científico?",
+            "¿Qué es la tecnología?",
+            "¿Cuáles son los tipos de tecnología?",
+            "¿Qué es la informática?",
+            "¿Qué es internet?",
+            "¿Qué es la programación?",
+            "¿Cuáles son los lenguajes de programación?",
+            "¿Qué es la salud?",
+            "¿Qué es la enfermedad?",
+            "¿Qué es la nutrición?",
+            "¿Qué es el ejercicio?",
+            "¿Qué es el deporte?",
+            "Cuáles son los deportes olímpicos?",
+            "¿Qué es la educación?",
+            "¿Cuáles son los niveles educativos?",
+            "¿Qué es la pedagogía?",
+            "¿Qué es la didáctica?",
+            "¿Qué es la evaluación educativa?",
+            "¿Qué es la investigación?",
+            "¿Cuáles son los tipos de investigación?",
+            "¿Qué es un proyecto de investigación?",
+            "¿Qué es la estadística?",
+            "Cuáles son las medidas de tendencia central?",
+            "¿Qué es la probabilidad?",
+            "¿Qué es la geometría?",
+            "Cuáles son las figuras geométricas?",
+            "¿Qué es el álgebra?",
+            "¿Qué es el cálculo?",
+            "¿Qué es la trigonometría?",
+            "¿Qué es la física?",
+            "Cuáles son las ramas de la física?",
+            "¿Qué es el movimiento?",
+            "¿Qué es la velocidad?",
+            "¿Qué es la aceleración?",
+            "¿Qué es la masa?",
+            "¿Qué es el peso?",
+            "¿Qué es la inercia?",
+            "¿Qué es la fuerza?",
+            "¿Qué es la energía?",
+            "Cuáles son las fuentes de energía?",
+            "¿Qué es el calor?",
+            "¿Qué es la temperatura?",
+            "¿Qué es la electricidad?",
+            "¿Qué es el magnetismo?",
+            "¿Qué es la luz?",
+            "¿Qué es el sonido?",
+            "¿Qué es la química?",
+            "Cuáles son las ramas de la química?",
+            "¿Qué es un elemento químico?",
+            "¿Qué es un compuesto químico?",
+            "¿Qué es una reacción química?",
+            "¿Qué es la tabla periódica?",
+            "¿Qué es la biología?",
+            "Cuáles son las ramas de la biología?",
+            "¿Qué es la genética?",
+            "¿Qué es la evolución?",
+            "¿Qué es la ecología?",
+            "¿Qué es el medio ambiente?",
+            "¿Qué es el desarrollo sostenible?",
+            "¿Qué es la astronomía?",
+            "Cuáles son los cuerpos celestes?",
+            "¿Qué es la geología?",
+            "Cuáles son las capas de la tierra?",
+            "¿Qué es un volcán?",
+            "¿Qué es un terremoto?",
+            "¿Qué es un tsunami?",
+            "¿Qué es el clima?",
+            "Cuáles son los tipos de clima?",
+            "¿Qué es el calentamiento global?",
+            "¿Qué es el efecto invernadero?",
+            "¿Qué es la capa de ozono?",
+            "¿Qué es la contaminación?",
+            "Cuáles son los tipos de contaminación?",
+            "¿Qué es la biodiversidad?",
+            "¿Qué es la extinción?",
+            "¿Qué es la conservación?",
+            "¿Qué es la agricultura?",
+            "¿Qué es la ganadería?",
+            "¿Qué es la pesca?",
+            "¿Qué es la minería?",
+            "¿Qué es la industria?",
+            "¿Qué es el comercio?",
+            "¿Qué es el transporte?",
+            "¿Qué es el turismo?",
+            "¿Qué es la comunicación?",
+            "Cuáles son los medios de comunicación?",
+            "¿Qué es la publicidad?",
+            "¿Qué es el marketing?",
+            "¿Qué es la globalización?",
+            "¿Qué es la cultura?",
+            "Cuáles son las manifestaciones culturales?",
+            "¿Qué es el arte?",
+            "Cuáles son las bellas artes?",
+            "¿Qué es la música?",
+            "Cuáles son los géneros musicales?",
+            "¿Qué es el teatro?",
+            "¿Qué es la danza?",
+            "¿Qué es el cine?",
+            "¿Qué es la literatura?",
+            "Cuáles son los géneros literarios?",
+            "¿Qué es la poesía?",
+            "¿Qué es la novela?",
+            "¿Qué es el cuento?",
+            "¿Qué es el ensayo?",
+            "¿Qué es el drama?",
+            "¿Qué es la comedia?",
+            "¿Qué es la tragedia?",
+            "¿Qué es la filosofía?",
+            "Cuáles son las ramas de la filosofía?",
+            "¿Qué es la ética?",
+            "¿Qué es la moral?",
+            "¿Qué es la lógica?",
+            "¿Qué es el conocimiento?",
+            "¿Qué es la verdad?",
+            "¿Qué es la ciencia?",
+            "Cuáles son los pasos del método científico?",
+            "¿Qué es la tecnología?",
+            "Cuáles son los tipos de tecnología?",
+            "¿Qué es la informática?",
+            "¿Qué es internet?",
+            "¿Qué es la programación?",
+            "Cuáles son los lenguajes de programación?",
+            "¿Qué es la salud?",
+            "¿Qué es la enfermedad?",
+            "¿Qué es la nutrición?",
+            "¿Qué es el ejercicio?",
+            "¿Qué es el deporte?",
+            "Cuáles son los deportes olímpicos?",
+            "¿Qué es la educación?",
+            "Cuáles son los niveles educativos?",
+            "¿Qué es la pedagogía?",
+            "¿Qué es la didáctica?",
+            "¿Qué es la evaluación educativa?",
+            "¿Qué es la investigación?",
+            "Cuáles son los tipos de investigación?",
+            "¿Qué es un proyecto de investigación?",
+            "¿Qué es la estadística?",
+            "Cuáles son las medidas de tendencia central?",
+            "¿Qué es la probabilidad?",
+            "¿Qué es la geometría?",
+            "Cuáles son las figuras geométricas?",
+            "¿Qué es el álgebra?",
+            "¿Qué es el cálculo?",
+            "¿Qué es la trigonometría?",
+            "¿Qué es la física?",
+            "Cuáles son las ramas de la física?",
+            "¿Qué es el movimiento?",
+            "¿Qué es la velocidad?",
+            "¿Qué es la aceleración?",
+            "¿Qué es la masa?",
+            "¿Qué es el peso?",
+            "¿Qué es la inercia?",
+            "¿Qué es la fuerza?",
+            "¿Qué es la energía?",
+            "Cuáles son las fuentes de energía?",
+            "¿Qué es el calor?",
+            "¿Qué es la temperatura?",
+            "¿Qué es la electricidad?",
+            "¿Qué es el magnetismo?",
+            "¿Qué es la luz?",
+            "¿Qué es el sonido?",
+            "¿Qué es la química?",
+            "Cuáles son las ramas de la química?",
+            "¿Qué es un elemento químico?",
+            "¿Qué es un compuesto químico?",
+            "¿Qué es una reacción química?",
+            "¿Qué es la tabla periódica?",
+            "¿Qué es la biología?",
+            "Cuáles son las ramas de la biología?",
+            "¿Qué es la genética?",
+            "¿Qué es la evolución?",
+            "¿Qué es la ecología?",
+            "¿Qué es el medio ambiente?",
+            "¿Qué es el desarrollo sostenible?",
+            "¿Qué es la astronomía?",
+            "Cuáles son los cuerpos celestes?",
+            "¿Qué es la geología?",
+            "Cuáles son las capas de la tierra?",
+            "¿Qué es un volcán?",
+            "¿Qué es un terremoto?",
+            "¿Qué es un tsunami?",
+            "¿Qué es el clima?",
+            "Cuáles son los tipos de clima?",
+            "¿Qué es el calentamiento global?",
+            "¿Qué es el efecto invernadero?",
+            "¿Qué es la capa de ozono?",
+            "¿Qué es la contaminación?",
+            "Cuáles son los tipos de contaminación?",
+            "¿Qué es la biodiversidad?",
+            "¿Qué es la extinción?",
+            "¿Qué es la conservación?",
+            "¿Qué es la agricultura?",
+            "¿Qué es la ganadería?",
+            "¿Qué es la pesca?",
+            "¿Qué es la minería?",
+            "¿Qué es la industria?",
+            "¿Qué es el comercio?",
+            "¿Qué es el transporte?",
+            "¿Qué es el turismo?",
+            "¿Qué es la comunicación?",
+            "Cuáles son los medios de comunicación?",
+            "¿Qué es la publicidad?",
+            "¿Qué es el marketing?",
+            "¿Qué es la globalización?",
+            "¿Qué es la cultura?",
+            "Cuáles son las manifestaciones culturales?",
+            "¿Qué es el arte?",
+            "Cuáles son las bellas artes?",
+            "¿Qué es la música?",
+            "Cuáles son los géneros musicales?",
+            "¿Qué es el teatro?",
+            "¿Qué es la danza?",
+            "¿Qué es el cine?",
+            "¿Qué es la literatura?",
+            "Cuáles son los géneros literarios?",
+            "¿Qué es la poesía?",
+            "¿Qué es la novela?",
+            "¿Qué es el cuento?",
+            "¿Qué es el ensayo?",
+            "¿Qué es el drama?",
+            "¿Qué es la comedia?",
+            "¿Qué es la tragedia?",
+            "¿Qué es la filosofía?",
+            "Cuáles son las ramas de la filosofía?",
+            "¿Qué es la ética?",
+            "¿Qué es la moral?",
+            "¿Qué es la lógica?",
+            "¿Qué es el conocimiento?",
+            "¿Qué es la verdad?",
+            "¿Qué es la ciencia?",
+            "Cuáles son los pasos del método científico?",
+            "¿Qué es la tecnología?",
+            "Cuáles son los tipos de tecnología?",
+            "¿Qué es la informática?",
+            "¿Qué es internet?",
+            "¿Qué es la programación?",
+            "Cuáles son los lenguajes de programación?",
+        ];
+
+        function showSuggestions() {
+            suggestionsBox.innerHTML = '';
+            suggestions.forEach(suggestion => {
+                const suggestionItem = document.createElement('div');
+                suggestionItem.classList.add('suggestion-item');
+                suggestionItem.textContent = suggestion;
+                suggestionItem.addEventListener('click', () => {
+                    messageInput.value = suggestion;
+                    handleInputChange();
+                    suggestionsBox.classList.remove('active');
+                    messageInput.focus();
+                });
+                suggestionsBox.appendChild(suggestionItem);
+            });
+            suggestionsBox.classList.add('active');
+        }
+
+        function hideSuggestions() {
+            suggestionsBox.classList.remove('active');
+            suggestionsBox.innerHTML = '';
+        }
+
+        chatbotButton.addEventListener('click', () => {
+            chatbotDialog.classList.toggle('active');
+            if (chatbotDialog.classList.contains('active')) {
+                showSuggestions();
+                messageInput.focus();
+            } else {
+                hideSuggestions();
+            }
+
+        });
+
+        closeButton.addEventListener('click', () => {
+            chatbotDialog.classList.remove('active');
+            hideSuggestions();
+        });
+
+        messageInput.addEventListener('input', handleInputChange);
+        messageInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        sendButton.addEventListener('click', sendMessage);
+
+        function handleInputChange() {
+            sendButton.disabled = !messageInput.value.trim();
+        }
+
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+            if (!messageText) return;
+
+            const userMessage = document.createElement('div');
+            userMessage.classList.add('message', 'user-message');
+            userMessage.innerHTML = `<span class="message-text">${messageText}</span><span class="message-sender">Tú</span>`;
+            chatMessages.appendChild(userMessage);
+
+            messageInput.value = '';
+            sendButton.disabled = true;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            hideSuggestions();
+
+            setTimeout(() => {
+                const botResponse = getBotResponse(messageText);
+                const botMessage = document.createElement('div');
+                botMessage.classList.add('message', 'bot-message');
+                botMessage.innerHTML = `<span class="message-text">${botResponse}</span><span class="message-sender">Anni.bot</span>`;
+                chatMessages.appendChild(botMessage);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 1000);
+        }
+
+        function getBotResponse(userMessage) {
+            userMessage = userMessage.toLowerCase();
+            let response = "Lo siento, no entiendo esa pregunta. Por favor, intenta con otra.";
+
+            if (userMessage.includes("qué es la célula")) {
+                response = "Unidad básica de vida.";
+            } else if (userMessage.includes("partes de la célula")) {
+                response = "Membrana, citoplasma, núcleo.";
+            } else if (userMessage.includes("qué es el átomo")) {
+                response = "Unidad básica de la materia.";
+            } else if (userMessage.includes("partes del átomo")) {
+                response = "Protones, neutrones, electrones.";
+            } else if (userMessage.includes("qué es una molécula")) {
+                response = "Agrupación de átomos.";
+            } else if (userMessage.includes("estados de la materia")) {
+                response = "Sólido, líquido, gaseoso, plasma.";
+            } else if (userMessage.includes("qué es la fotosíntesis")) {
+                response = "Proceso de las plantas para producir alimento.";
+            } else if (userMessage.includes("qué es la respiración celular")) {
+                response = "Proceso para obtener energía de los alimentos.";
+            } else if (userMessage.includes("qué es el sistema solar")) {
+                response = "Sistema de planetas que orbitan alrededor del Sol.";
+            } else if (userMessage.includes("planetas del sistema solar")) {
+                response = "Mercurio, Venus, Tierra, Marte, Júpiter, Saturno, Urano, Neptuno.";
+            } else if (userMessage.includes("qué es la gravedad")) {
+                response = "Fuerza que atrae los objetos entre sí.";
+            } else if (userMessage.includes("qué es la fuerza")) {
+                response = "Interacción que puede cambiar el movimiento de un objeto.";
+            } else if (userMessage.includes("qué es la energía")) {
+                response = "Capacidad para realizar trabajo.";
+            } else if (userMessage.includes("fuentes de energía")) {
+                response = "Sol, viento, agua, combustibles fósiles.";
+            } else if (userMessage.includes("qué es la historia")) {
+                response = "Estudio del pasado de la humanidad.";
+            } else if (userMessage.includes("edades de la historia")) {
+                response = "Prehistoria, Edad Antigua, Edad Media, Edad Moderna, Edad Contemporánea.";
+            } else if (userMessage.includes("qué es la geografía")) {
+                response = "Estudio de la Tierra y sus características.";
+            } else if (userMessage.includes("cuáles son los continentes")) {
+                response = "África, América, Asia, Europa, Oceanía, Antártida.";
+            } else if (userMessage.includes("cuáles son los océanos")) {
+                response = "Pacífico, Atlántico, Índico, Ártico, Antártico.";
+            } else if (userMessage.includes("qué es la democracia")) {
+                response = "Sistema de gobierno donde el poder reside en el pueblo.";
+            } else if (userMessage.includes("qué es la dictadura")) {
+                response = "Sistema de gobierno autoritario.";
+            } else if (userMessage.includes("qué son los derechos humanos")) {
+                response = "Derechos inherentes a todos los seres humanos.";
+            } else if (userMessage.includes("qué es la economía")) {
+                response = "Estudio de cómo las sociedades administran los recursos.";
+            } else if (userMessage.includes("producto interno bruto")) {
+                response = "Valor total de bienes y servicios producidos por un país.";
+            } else if (userMessage.includes("qué es la inflación")) {
+                response = "Aumento generalizado de los precios.";
+            } else if (userMessage.includes("qué es la deflación")) {
+                response = "Disminución generalizada de los precios.";
+            } else if (userMessage.includes("qué es la globalización")) {
+                response = "Interconexión mundial de economías y culturas.";
+            } else if (userMessage.includes("qué es la cultura")) {
+                response = "Conjunto de costumbres, creencias y valores de un grupo.";
+            } else if (userMessage.includes("manifestaciones culturales")) {
+                response = "Arte, música, literatura, etc.";
+            } else if (userMessage.includes("qué es el arte")) {
+                response = "Expresión de creatividad humana.";
+            } else if (userMessage.includes("cuáles son las bellas artes")) {
+                response = "Pintura, escultura, arquitectura, música, danza, literatura, cine.";
+            } else if (userMessage.includes("qué es la música")) {
+                response = "Arte de combinar sonidos.";
+            } else if (userMessage.includes("cuáles son los géneros musicales")) {
+                response = "Pop, rock, clásica, etc.";
+            } else if (userMessage.includes("qué es el teatro")) {
+                response = "Arte de representar historias en un escenario.";
+            } else if (userMessage.includes("qué es la danza")) {
+                response = "Arte de moverse al ritmo de la música.";
+            } else if (userMessage.includes("qué es el cine")) {
+                response = "Arte de crear películas.";
+            } else if (userMessage.includes("qué es la literatura")) {
+                response = "Arte de escribir.";
+            } else if (userMessage.includes("cuáles son los géneros literarios")) {
+                response = "Poesía, narrativa, drama, ensayo.";
+            } else if (userMessage.includes("qué es la poesía")) {
+                response = "Expresión artística en verso.";
+            } else if (userMessage.includes("qué es la novela")) {
+                response = "Obra literaria narrativa extensa.";
+            } else if (userMessage.includes("qué es el cuento")) {
+                response = "Obra literaria narrativa breve.";
+            } else if (userMessage.includes("qué es el ensayo")) {
+                response = "Escrito que explora un tema.";
+            } else if (userMessage.includes("qué es el drama")) {
+                response = "Obra teatral con conflicto.";
+            } else if (userMessage.includes("qué es la comedia")) {
+                response = "Obra teatral con humor.";
+            } else if (userMessage.includes("qué es la tragedia")) {
+                response = "Obra teatral con final desafortunado.";
+             } else if (userMessage.includes("qué es la filosofía")) {
+                response = "Estudio del pensamiento fundamental.";
+            } else if (userMessage.includes("cuáles son las ramas de la filosofía")) {
+                response = "Metafísica, epistemología, ética, lógica.";
+            } else if (userMessage.includes("qué es la ética")) {
+                response = "Estudio de la moral y el comportamiento humano.";
+            } else if (userMessage.includes("qué es la moral")) {
+                response = "Conjunto de normas y valores de una sociedad.";
+            } else if (userMessage.includes("qué es la lógica")) {
+                response = "Estudio del razonamiento válido.";
+            } else if (userMessage.includes("qué es el conocimiento")) {
+                response = "Información con significado y comprensión.";
+            } else if (userMessage.includes("qué es la verdad")) {
+                response = "Conformidad con los hechos o la realidad.";
+            } else if (userMessage.includes("qué es la ciencia")) {
+                response = "Estudio sistemático del mundo natural.";
+            } else if (userMessage.includes("cuáles son los pasos del método científico")) {
+                response = "Observación, hipótesis, experimentación, análisis, conclusión.";
+            } else if (userMessage.includes("qué es la tecnología")) {
+                response = "Aplicación del conocimiento científico para fines prácticos.";
+            } else if (userMessage.includes("cuáles son los tipos de tecnología")) {
+                response = "Informática, biotecnología, nanotecnología, etc.";
+            } else if (userMessage.includes("qué es la informática")) {
+                response = "Estudio del procesamiento de información.";
+            } else if (userMessage.includes("qué es internet")) {
+                response = "Red global de redes de computadoras.";
+            } else if (userMessage.includes("qué es la programación")) {
+                response = "Proceso de crear instrucciones para una computadora.";
+            } else if (userMessage.includes("cuáles son los lenguajes de programación")) {
+                response = "Python, Java, C++, JavaScript, etc.";
+            } else if (userMessage.includes("qué es la salud")) {
+                response = "Estado de bienestar físico, mental y social.";
+            } else if (userMessage.includes("qué es la enfermedad")) {
+                response = "Alteración del estado de salud.";
+            } else if (userMessage.includes("qué es la nutrición")) {
+                response = "Proceso de obtener nutrientes de los alimentos.";
+            } else if (userMessage.includes("qué es el ejercicio")) {
+                response = "Actividad física para mantener la salud.";
+            } else if (userMessage.includes("qué es el deporte")) {
+                response = "Actividad física reglamentada con fines competitivos.";
+            } else if (userMessage.includes("cuáles son los deportes olímpicos")) {
+                response = "Atletismo, natación, gimnasia, etc.";
+            } else if (userMessage.includes("qué es la educación")) {
+                response = "Proceso de enseñanza y aprendizaje.";
+            } else if (userMessage.includes("cuáles son los niveles educativos")) {
+                response = "Inicial, primaria, secundaria, superior.";
+            } else if (userMessage.includes("qué es la pedagogía")) {
+                response = "Ciencia de la educación.";
+            } else if (userMessage.includes("qué es la didáctica")) {
+                response = "Técnicas de enseñanza.";
+            } else if (userMessage.includes("qué es la evaluación educativa")) {
+                response = "Proceso de valorar el aprendizaje.";
+            } else if (userMessage.includes("qué es la investigación")) {
+                response = "Proceso de buscar nuevo conocimiento.";
+            } else if (userMessage.includes("cuáles son los tipos de investigación")) {
+                response = "Cualitativa, cuantitativa, mixta.";
+            } else if (userMessage.includes("qué es un proyecto de investigación")) {
+                response = "Plan para responder una pregunta de investigación.";
+            } else if (userMessage.includes("qué es la estadística")) {
+                response = "Ciencia de los datos.";
+            } else if (userMessage.includes("cuáles son las medidas de tendencia central")) {
+                response = "Media, mediana, moda.";
+            } else if (userMessage.includes("qué es la probabilidad")) {
+                response = "Posibilidad de que ocurra un evento.";
+            } else if (userMessage.includes("qué es la geometría")) {
+                response = "Estudio de las formas y el espacio.";
+            } else if (userMessage.includes("cuáles son las figuras geométricas")) {
+                response = "Triángulo, cuadrado, círculo, etc.";
+            } else if (userMessage.includes("qué es el álgebra")) {
+                response = "Rama de las matemáticas con símbolos y letras.";
+            } else if (userMessage.includes("qué es el cálculo")) {
+                response = "Rama de las matemáticas con límites y derivadas.";
+            } else if (userMessage.includes("qué es la trigonometría")) {
+                response = "Estudio de las relaciones entre los lados y ángulos de los triángulos.";
+            } else if (userMessage.includes("qué es la física")) {
+                response = "Estudio de la naturaleza y sus fenómenos.";
+            } else if (userMessage.includes("cuáles son las ramas de la física")) {
+                response = "Mecánica, termodinámica, óptica, etc.";
+            } else if (userMessage.includes("qué es el movimiento")) {
+                response = "Cambio de posición de un objeto.";
+            } else if (userMessage.includes("qué es la velocidad")) {
+                response = "Rapidez y dirección del movimiento.";
+            } else if (userMessage.includes("qué es la aceleración")) {
+                response = "Cambio de velocidad de un objeto.";
+            } else if (userMessage.includes("qué es la masa")) {
+                response = "Cantidad de materia de un objeto.";
+            } else if (userMessage.includes("qué es el peso")) {
+                response = "Fuerza de gravedad sobre un objeto.";
+            } else if (userMessage.includes("qué es la inercia")) {
+                response = "Resistencia de un objeto a cambiar su movimiento.";
+            } else if (userMessage.includes("qué es la fuerza")) {
+                response = "Interacción que puede cambiar el movimiento de un objeto.";
+            } else if (userMessage.includes("qué es la energía")) {
+                response = "Capacidad para realizar trabajo.";
+            } else if (userMessage.includes("cuáles son las fuentes de energía")) {
+                response = "Sol, viento, agua, combustibles fósiles.";
+            } else if (userMessage.includes("qué es el calor")) {
+                response = "Transferencia de energía térmica.";
+            } else if (userMessage.includes("qué es la temperatura")) {
+                response = "Medida del calor de un objeto.";
+            } else if (userMessage.includes("qué es la electricidad")) {
+                response = "Flujo de carga eléctrica.";
+            } else if (userMessage.includes("qué es el magnetismo")) {
+                response = "Fenómeno relacionado con la atracción y repulsión de objetos.";
+            } else if (userMessage.includes("qué es la luz")) {
+                response = "Radiación electromagnética que permite ver.";
+            } else if (userMessage.includes("qué es el sonido")) {
+                response = "Vibraciones que se propagan en un medio.";
+            } else if (userMessage.includes("qué es la química")) {
+                response = "Estudio de la composición, estructura, propiedades y reacciones de la materia.";
+            } else if (userMessage.includes("cuáles son las ramas de la química")) {
+                response = "Orgánica, inorgánica, analítica, física, bioquímica.";
+            } else if (userMessage.includes("qué es un elemento químico")) {
+                response = "Sustancia formada por un solo tipo de átomo.";
+            } else if (userMessage.includes("qué es un compuesto químico")) {
+                response = "Sustancia formada por dos o más elementos unidos.";
+            } else if (userMessage.includes("qué es una reacción química")) {
+                response = "Proceso que involucra la reorganización de átomos y moléculas.";
+            } else if (userMessage.includes("qué es la tabla periódica")) {
+                response = "Organización de los elementos químicos según sus propiedades.";
+            } else if (userMessage.includes("qué es la biología")) {
+                response = "Estudio de los seres vivos.";
+            } else if (userMessage.includes("cuáles son las ramas de la biología")) {
+                response = "Zoología, botánica, microbiología, genética, ecología.";
+            } else if (userMessage.includes("qué es la genética")) {
+                response = "Estudio de la herencia y los genes.";
+            } else if (userMessage.includes("qué es la evolución")) {
+                response = "Cambio de los seres vivos a lo largo del tiempo.";
+            } else if (userMessage.includes("qué es la ecología")) {
+                response = "Estudio de las relaciones entre los organismos y su ambiente.";
+            } else if (userMessage.includes("qué es el medio ambiente")) {
+                response = "Entorno natural en el que viven los organismos.";
+            } else if (userMessage.includes("qué es el desarrollo sostenible")) {
+                response = "Desarrollo que satisface las necesidades del presente sin comprometer las del futuro.";
+            } else if (userMessage.includes("qué es la astronomía")) {
+                response = "Estudio de los cuerpos celestes y el universo.";
+            } else if (userMessage.includes("cuáles son los cuerpos celestes")) {
+                response = "Planetas, estrellas, galaxias, etc.";
+            } else if (userMessage.includes("qué es la geología")) {
+                response = "Estudio de la Tierra, su composición y su historia.";
+            } else if (userMessage.includes("cuáles son las capas de la tierra")) {
+                response = "Núcleo, manto, corteza.";
+            } else if (userMessage.includes("qué es un volcán")) {
+                response = "Abertura en la corteza terrestre por donde sale magma.";
+            } else if (userMessage.includes("qué es un terremoto")) {
+                response = "Movimiento brusco de la corteza terrestre.";
+            } else if (userMessage.includes("qué es un tsunami")) {
+                response = "Ola gigante causada por un terremoto o erupción volcánica en el mar.";
+            } else if (userMessage.includes("qué es el clima")) {
+                response = "Condiciones atmosféricas promedio de una región.";
+            } else if (userMessage.includes("cuáles son los tipos de clima")) {
+                response = "Tropical, templado, polar, etc.";
+            } else if (userMessage.includes("qué es el calentamiento global")) {
+                response = "Aumento de la temperatura promedio de la Tierra.";
+            } else if (userMessage.includes("qué es el efecto invernadero")) {
+                response = "Proceso por el cual la atmósfera retiene calor.";
+            } else if (userMessage.includes("qué es la capa de ozono")) {
+                response = "Capa atmosférica que protege de la radiación UV.";
+            } else if (userMessage.includes("qué es la contaminación")) {
+                response = "Presencia de sustancias nocivas en el ambiente.";
+            } else if (userMessage.includes("cuáles son los tipos de contaminación")) {
+                response = "Aire, agua, suelo, etc.";
+            } else if (userMessage.includes("qué es la biodiversidad")) {
+                response = "Variedad de vida en la Tierra.";
+            } else if (userMessage.includes("qué es la extinción")) {
+                response = "Desaparición de una especie.";
+            } else if (userMessage.includes("qué es la conservación")) {
+                response = "Protección del medio ambiente y los recursos naturales.";
+            }             else if (userMessage.includes("qué es la agricultura")) {
+                response = "Cultivo de la tierra para obtener alimentos.";
+            } else if (userMessage.includes("qué es la ganadería")) {
+                response = "Cría de animales para obtener productos.";
+            } else if (userMessage.includes("qué es la pesca")) {
+                response = "Captura de peces y otros animales acuáticos.";
+            } else if (userMessage.includes("qué es la minería")) {
+                response = "Extracción de minerales y otros recursos de la Tierra.";
+            } else if (userMessage.includes("qué es la industria")) {
+                response = "Producción de bienes a gran escala.";
+            } else if (userMessage.includes("qué es el comercio")) {
+                response = "Intercambio de bienes y servicios.";
+            } else if (userMessage.includes("qué es el transporte")) {
+                response = "Traslado de personas y mercancías.";
+            } else if (userMessage.includes("qué es el turismo")) {
+                response = "Actividad de viajar por placer.";
+            } else if (userMessage.includes("qué es la comunicación")) {
+                response = "Proceso de transmitir y recibir información.";
+            } else if (userMessage.includes("cuáles son los medios de comunicación")) {
+                response = "Periódicos, radio, televisión, internet, etc.";
+            } else if (userMessage.includes("qué es la publicidad")) {
+                response = "Técnica de dar a conocer un producto o servicio.";
+            } else if (userMessage.includes("qué es el marketing")) {
+                response = "Conjunto de estrategias para vender un producto o servicio.";
+            } else if (userMessage.includes("qué es la globalización")) {
+                response = "Interconexión mundial de economías y culturas.";
+            } else if (userMessage.includes("qué es la cultura")) {
+                response = "Conjunto de costumbres, creencias y valores de un grupo.";
+            } else if (userMessage.includes("cuáles son las manifestaciones culturales")) {
+                response = "Arte, música, literatura, etc.";
+            } else if (userMessage.includes("qué es el arte")) {
+                response = "Expresión de creatividad humana.";
+            } else if (userMessage.includes("cuáles son las bellas artes")) {
+                response = "Pintura, escultura, arquitectura, música, danza, literatura, cine.";
+            } else if (userMessage.includes("qué es la música")) {
+                response = "Arte de combinar sonidos.";
+            } else if (userMessage.includes("cuáles son los géneros musicales")) {
+                response = "Pop, rock, clásica, etc.";
+            } else if (userMessage.includes("qué es el teatro")) {
+                response = "Arte de representar historias en un escenario.";
+            } else if (userMessage.includes("qué es la danza")) {
+                response = "Arte de moverse al ritmo de la música.";
+            } else if (userMessage.includes("qué es el cine")) {
+                response = "Arte de crear películas.";
+            } else if (userMessage.includes("qué es la literatura")) {
+                response = "Arte de escribir.";
+            } else if (userMessage.includes("cuáles son los géneros literarios")) {
+                response = "Poesía, narrativa, drama, ensayo.";
+            } else if (userMessage.includes("qué es la poesía")) {
+                response = "Expresión artística en verso.";
+            } else if (userMessage.includes("qué es la novela")) {
+                response = "Obra literaria narrativa extensa.";
+            } else if (userMessage.includes("qué es el cuento")) {
+                response = "Obra literaria narrativa breve.";
+            } else if (userMessage.includes("qué es el ensayo")) {
+                response = "Escrito que explora un tema.";
+            } else if (userMessage.includes("qué es el drama")) {
+                response = "Obra teatral con conflicto.";
+            } else if (userMessage.includes("qué es la comedia")) {
+                response = "Obra teatral con humor.";
+            } else if (userMessage.includes("qué es la tragedia")) {
+                response = "Obra teatral con final desafortunado.";
+            } else if (userMessage.includes("qué es la filosofía")) {
+                response = "Estudio del pensamiento fundamental.";
+            } else if (userMessage.includes("cuáles son las ramas de la filosofía")) {
+                response = "Metafísica, epistemología, ética, lógica.";
+            } else if (userMessage.includes("qué es la ética")) {
+                response = "Estudio de la moral y el comportamiento humano.";
+            } else if (userMessage.includes("qué es la moral")) {
+                response = "Conjunto de normas y valores de una sociedad.";
+            } else if (userMessage.includes("qué es la lógica")) {
+                response = "Estudio del razonamiento válido.";
+            } else if (userMessage.includes("qué es el conocimiento")) {
+                response = "Información con significado y comprensión.";
+            } else if (userMessage.includes("qué es la verdad")) {
+                response = "Conformidad con los hechos o la realidad.";
+            } else if (userMessage.includes("qué es la ciencia")) {
+                response = "Estudio sistemático del mundo natural.";
+            } else if (userMessage.includes("cuáles son los pasos del método científico")) {
+                response = "Observación, hipótesis, experimentación, análisis, conclusión.";
+            } else if (userMessage.includes("qué es la tecnología")) {
+                response = "Aplicación del conocimiento científico para fines prácticos.";
+            } else if (userMessage.includes("cuáles son los tipos de tecnología")) {
+                response = "Informática, biotecnología, nanotecnología, etc.";
+            } else if (userMessage.includes("qué es la informática")) {
+                response = "Estudio del procesamiento de información.";
+            } else if (userMessage.includes("qué es internet")) {
+                response = "Red global de redes de computadoras.";
+            } else if (userMessage.includes("qué es la programación")) {
+                response = "Proceso de crear instrucciones para una computadora.";
+            } else if (userMessage.includes("cuáles son los lenguajes de programación")) {
+                response = "Python, Java, C++, JavaScript, etc.";
+            }  else if (userMessage.includes("qué es la salud")) {
+                response = "Estado de bienestar físico, mental y social.";
+            } else if (userMessage.includes("qué es la enfermedad")) {
+                response = "Alteración del estado de salud.";
+            } else if (userMessage.includes("qué es la nutrición")) {
+                response = "Proceso de obtener nutrientes de los alimentos.";
+            } else if (userMessage.includes("qué es el ejercicio")) {
+                response = "Actividad física para mantener la salud.";
+            } else if (userMessage.includes("qué es el deporte")) {
+                response = "Actividad física reglamentada con fines competitivos.";
+            } else if (userMessage.includes("cuáles son los deportes olímpicos")) {
+                response = "Atletismo, natación, gimnasia, etc.";
+            } else if (userMessage.includes("qué es la educación")) {
+                response = "Proceso de enseñanza y aprendizaje.";
+            } else if (userMessage.includes("cuáles son los niveles educativos")) {
+                response = "Inicial, primaria, secundaria, superior.";
+            } else if (userMessage.includes("qué es la pedagogía")) {
+                response = "Ciencia de la educación.";
+            } else if (userMessage.includes("qué es la didáctica")) {
+                response = "Técnicas de enseñanza.";
+            } else if (userMessage.includes("qué es la evaluación educativa")) {
+                response = "Proceso de valorar el aprendizaje.";
+            } else if (userMessage.includes("qué es la investigación")) {
+                response = "Proceso de buscar nuevo conocimiento.";
+            } else if (userMessage.includes("cuáles son los tipos de investigación")) {
+                response = "Cualitativa, cuantitativa, mixta.";
+            } else if (userMessage.includes("qué es un proyecto de investigación")) {
+                response = "Plan para responder una pregunta de investigación.";
+            } else if (userMessage.includes("qué es la estadística")) {
+                response = "Ciencia de los datos.";
+            } else if (userMessage.includes("cuáles son las medidas de tendencia central")) {
+                response = "Media, mediana, moda.";
+            } else if (userMessage.includes("qué es la probabilidad")) {
+                response = "Posibilidad de que ocurra un evento.";
+            } else if (userMessage.includes("qué es la geometría")) {
+                response = "Estudio de las formas y el espacio.";
+            } else if (userMessage.includes("cuáles son las figuras geométricas")) {
+                response = "Triángulo, cuadrado, círculo, etc.";
+            } else if (userMessage.includes("qué es el álgebra")) {
+                response = "Rama de las matemáticas con símbolos y letras.";
+            } else if (userMessage.includes("qué es el cálculo")) {
+                response = "Rama de las matemáticas con límites y derivadas.";
+            } else if (userMessage.includes("qué es la trigonometría")) {
+                response = "Estudio de las relaciones entre los lados y ángulos de los triángulos.";
+            } else if (userMessage.includes("qué es la física")) {
+                response = "Estudio de la naturaleza y sus fenómenos.";
+            } else if (userMessage.includes("cuáles son las ramas de la física")) {
+                response = "Mecánica, termodinámica, óptica, etc.";
+            } else if (userMessage.includes("qué es el movimiento")) {
+                response = "Cambio de posición de un objeto.";
+            } else if (userMessage.includes("qué es la velocidad")) {
+                response = "Rapidez y dirección del movimiento.";
+            } else if (userMessage.includes("qué es la aceleración")) {
+                response = "Cambio de velocidad de un objeto.";
+            } else if (userMessage.includes("qué es la masa")) {
+                response = "Cantidad de materia de un objeto.";
+            } else if (userMessage.includes("qué es el peso")) {
+                response = "Fuerza de gravedad sobre un objeto.";
+            } else if (userMessage.includes("qué es la inercia")) {
+                response = "Resistencia de un objeto a cambiar su movimiento.";
+            } else if (userMessage.includes("qué es la fuerza")) {
+                response = "Interacción que puede cambiar el movimiento de un objeto.";
+            } else if (userMessage.includes("qué es la energía")) {
+                response = "Capacidad para realizar trabajo.";
+            } else if (userMessage.includes("cuáles son las fuentes de energía")) {
+                response = "Sol, viento, agua, combustibles fósiles.";
+            } else if (userMessage.includes("qué es el calor")) {
+                response = "Transferencia de energía térmica.";
+            } else if (userMessage.includes("qué es la temperatura")) {
+                response = "Medida del calor de un objeto.";
+            } else if (userMessage.includes("qué es la electricidad")) {
+                response = "Flujo de carga eléctrica.";
+            } else if (userMessage.includes("qué es el magnetismo")) {
+                response = "Fenómeno relacionado con la atracción y repulsión de objetos.";
+            } else if (userMessage.includes("qué es la luz")) {
+                response = "Radiación electromagnética que permite ver.";
+            } else if (userMessage.includes("qué es el sonido")) {
+                response = "Vibraciones que se propagan en un medio.";
+            } else if (userMessage.includes("qué es la química")) {
+                response = "Estudio de la composición, estructura, propiedades y reacciones de la materia.";
+            } else if (userMessage.includes("cuáles son las ramas de la química")) {
+                response = "Orgánica, inorgánica, analítica, física, bioquímica.";
+            } else if (userMessage.includes("qué es un elemento químico")) {
+                response = "Sustancia formada por un solo tipo de átomo.";
+            } else if (userMessage.includes("qué es un compuesto químico")) {
+                response = "Sustancia formada por dos o más elementos unidos.";
+            } else if (userMessage.includes("qué es una reacción química")) {
+                response = "Proceso que involucra la reorganización de átomos y moléculas.";
+            } else if (userMessage.includes("qué es la tabla periódica")) {
+                response = "Organización de los elementos químicos según sus propiedades.";
+            } else if (userMessage.includes("qué es la biología")) {
+                response = "Estudio de los seres vivos.";
+            } else if (userMessage.includes("cuáles son las ramas de la biología")) {
+                response = "Zoología, botánica, microbiología, genética, ecología.";
+            } else if (userMessage.includes("qué es la genética")) {
+                response = "Estudio de la herencia y los genes.";
+            } else if (userMessage.includes("qué es la evolución")) {
+                response = "Cambio de los seres vivos a lo largo del tiempo.";
+            } else if (userMessage.includes("qué es la ecología")) {
+                response = "Estudio de las relaciones entre los organismos y su ambiente.";
+            } else if (userMessage.includes("qué es el medio ambiente")) {
+                response = "Entorno natural en el que viven los organismos.";
+            } else if (userMessage.includes("qué es el desarrollo sostenible")) {
+                response = "Desarrollo que satisface las necesidades del presente sin comprometer las del futuro.";
+            } else if (userMessage.includes("qué es la astronomía")) {
+                response = "Estudio de los cuerpos celestes y el universo.";
+            } else if (userMessage.includes("cuáles son los cuerpos celestes")) {
+                response = "Planetas, estrellas, galaxias, etc.";
+            } else if (userMessage.includes("qué es la geología")) {
+                response = "Estudio de la Tierra, su composición y su historia.";
+            } else if (userMessage.includes("cuáles son las capas de la tierra")) {
+                response = "Núcleo, manto, corteza.";
+            } else if (userMessage.includes("qué es un volcán")) {
+                response = "Abertura en la corteza terrestre por donde sale magma.";
+            } else if (userMessage.includes("qué es un terremoto")) {
+                response = "Movimiento brusco de la corteza terrestre.";
+            } else if (userMessage.includes("qué es un tsunami")) {
+                response = "Ola gigante causada por un terremoto o erupción volcánica en el mar.";
+            } else if (userMessage.includes("qué es el clima")) {
+                response = "Condiciones atmosféricas promedio de una región.";
+            } else if (userMessage.includes("cuáles son los tipos de clima")) {
+                response = "Tropical, templado, polar, etc.";
+            } else if (userMessage.includes("qué es el calentamiento global")) {
+                response = "Aumento de la temperatura promedio de la Tierra.";
+            } else if (userMessage.includes("qué es el efecto invernadero")) {
+                response = "Proceso por el cual la atmósfera retiene calor.";
+            } else if (userMessage.includes("qué es la capa de ozono")) {
+                response = "Capa atmosférica que protege de la radiación UV.";
+            } else if (userMessage.includes("qué es la contaminación")) {
+                response = "Presencia de sustancias nocivas en el ambiente.";
+            } else if (userMessage.includes("cuáles son los tipos de contaminación")) {
+                response = "Aire, agua, suelo, etc.";
+            } else if (userMessage.includes("qué es la biodiversidad")) {
+                response = "Variedad de vida en la Tierra.";
+            } else if (userMessage.includes("qué es la extinción")) {
+                response = "Desaparición de una especie.";
+            } else if (userMessage.includes("qué es la conservación")) {
+                response = "Protección del medio ambiente y los recursos naturales.";
+            }
+            return response;
+        }
+    </script>
+</body>
+</html>
+
+    </main>
+    <footer class="bg-white/80 backdrop-blur-md py-4 shadow-md rounded-t-lg">
+        <div class="container mx-auto px-4 text-center text-gray-600">
+            &copy; 2025 Anni.bot.web. Todos los derechos reservados.
+        </div>
+    </footer>
+    <div class="chatbot-container">
+        <button id="chatbot-button" class="chatbot-button" aria-label="Abrir chat">
+             <img src="
+
+https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap
+https://cdn.tailwindcss.com
+https://cdn.jsdelivr.net/npm/lucide-static@latest/icons/message-circle.svg
+http://www.w3.org/2000/svg
